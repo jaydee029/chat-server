@@ -39,7 +39,11 @@ func main() {
 				log.Println("Error reading message from server:", err)
 				return
 			}
-			fmt.Println("Message from server:", string(msg))
+
+			writer := bufio.NewWriter(os.Stdout)
+			writer.Write(msg)
+			writer.Flush()
+			//fmt.Println("Message from server:", string(msg))
 		}
 	}()
 
@@ -50,6 +54,7 @@ func main() {
 		case <-interrupt:
 			fmt.Println("Exiting...")
 			return
+
 		default:
 			fmt.Print("Enter message: ")
 			msg, _ := reader.ReadString('\n')
