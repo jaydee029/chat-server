@@ -10,7 +10,7 @@ type Wserver struct {
 	Register   chan *Client
 	Unregister chan *Client
 	Broadcast  chan []byte
-	chats      map[*Chats]bool
+	ChatRooms  map[*chatRooms]bool
 }
 
 func main() {
@@ -20,6 +20,7 @@ func main() {
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Broadcast:  make(chan []byte),
+		ChatRooms:  make(map[*chatRooms]bool),
 	}
 
 	http.HandleFunc("/chat", Wsserver.handleChat)
