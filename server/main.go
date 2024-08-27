@@ -6,21 +6,19 @@ import (
 )
 
 type Wserver struct {
-	Clients    map[*Client]bool
 	Register   chan *Client
 	Unregister chan *Client
-	Broadcast  chan []byte
-	ChatRooms  map[*chatRooms]bool
+	Broadcast  chan *Message
+	ChatRooms  map[string]*chatRooms
 }
 
 func main() {
 
 	Wsserver := &Wserver{
-		Clients:    make(map[*Client]bool),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
-		Broadcast:  make(chan []byte),
-		ChatRooms:  make(map[*chatRooms]bool),
+		Broadcast:  make(chan *Message),
+		ChatRooms:  make(map[string]*chatRooms),
 	}
 
 	http.HandleFunc("/chat", Wsserver.handleChat)

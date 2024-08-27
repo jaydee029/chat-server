@@ -18,6 +18,10 @@ var (
 	}
 )
 
+type chatRooms struct {
+	Client map[*Client]bool
+}
+
 func (ws *Wserver) Runserver() {
 
 	for {
@@ -40,7 +44,8 @@ func (ws *Wserver) handleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	go ws.Runserver()
-	client := newClient(conn, ws)
+	name := r.URL.Query().Get("name")
+	client := newClient(name, conn, ws)
 
 	go client.ReadInput()
 	go client.WriteInput()
@@ -52,15 +57,31 @@ func (ws *Wserver) handleChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ws *Wserver) registerClient(client *Client) {
-	ws.Clients[client] = true
+	room, ok := ws.ChatRooms[client.roomid]
+	if ok {
+		room.Client[client] = true
+	}
+	if !ok {
+		ws.ChatRooms[client.roomid] = &chatRooms{
+			Client: make(map[*Client]bool),
+		}
+		room := ws.ChatRooms[client.roomid]
+		room.Client[client] = true
+	}
 }
 
 func (ws *Wserver) unregisterClient(client *Client) {
-	delete(ws.Clients, client)
+
+	delete(ws.ChatRooms[client.roomid].Client, client)
+	if len(ws.ChatRooms[client.roomid].Client) == 0 {
+		delete(ws.ChatRooms, client.roomid)
+	}
 }
 
-func (ws *Wserver) BroadcastMessage(msg []byte) {
-	for client := range ws.Clients {
-		client.sendto <- msg
+func (ws *Wserver) BroadcastMessage(msg *Message) {
+	for client := range ws.ChatRooms[msg.roomid].Client {
+		if client.username != msg.sender {
+			client.Message <- msg
+		}
 	}
 }

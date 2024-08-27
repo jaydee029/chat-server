@@ -1,21 +1,31 @@
 package main
 
 import (
-	"log"	
+	"log"
+
 	"github.com/gorilla/websocket"
 )
 
 type Client struct {
-	conn   *websocket.Conn
-	ws     *Wserver
-	sendto chan []byte
+	conn     *websocket.Conn
+	ws       *Wserver
+	username string
+	Message  chan *Message
+	roomid   string
 }
 
-func newClient(conn *websocket.Conn, wserver *Wserver) *Client {
+type Message struct {
+	content []byte
+	roomid  string
+	sender  string
+}
+
+func newClient(name string, conn *websocket.Conn, wserver *Wserver) *Client {
 	return &Client{
-		conn:   conn,
-		ws:     wserver,
-		sendto: make(chan []byte),
+		conn:     conn,
+		ws:       wserver,
+		username: name,
+		Message:  make(chan *Message, 10),
 	}
 }
 
@@ -27,27 +37,26 @@ func (client *Client) ReadInput() {
 			break
 		}
 
-		client.ws.Broadcast <- msg
+		message := &Message{
+			roomid:  client.roomid,
+			sender:  client.username,
+			content: msg,
+		}
+		client.ws.Broadcast <- message
 	}
 }
 
 func (client *Client) WriteInput() {
 	for {
-		Msg := <-client.sendto
+		Msg := <-client.Message
 		w, err := client.conn.NextWriter(websocket.TextMessage)
 		if err != nil {
 			log.Printf("Error while writing the message ; %v", err)
 			break
 		}
 
-		w.Write(Msg)
-
-		n := len(client.sendto)
-		for i := 0; i < n; i++ {
-			w.Write([]byte("\n"))
-			w.Write(<-client.sendto)
-
-		}
+		w.Write(Msg.content)
+		w.Write([]byte("\n"))
 
 		err = w.Close()
 		if err != nil {
