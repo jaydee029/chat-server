@@ -60,6 +60,12 @@ func (ws *Wserver) registerClient(client *Client) {
 	room, ok := ws.ChatRooms[client.roomid]
 	if ok {
 		room.Client[client] = true
+		msg := &Message{
+			content: []byte(client.username + "has joined the chat"),
+			roomid:  client.roomid,
+			sender:  client.username,
+		}
+		client.Message <- msg
 	}
 	if !ok {
 		ws.ChatRooms[client.roomid] = &chatRooms{
@@ -71,11 +77,19 @@ func (ws *Wserver) registerClient(client *Client) {
 }
 
 func (ws *Wserver) unregisterClient(client *Client) {
-
-	delete(ws.ChatRooms[client.roomid].Client, client)
 	if len(ws.ChatRooms[client.roomid].Client) == 0 {
+		delete(ws.ChatRooms[client.roomid].Client, client)
 		delete(ws.ChatRooms, client.roomid)
 	}
+
+	msg := &Message{
+		content: []byte(client.username + "has left the chat"),
+		roomid:  client.roomid,
+		sender:  client.username,
+	}
+	client.Message <- msg
+	delete(ws.ChatRooms[client.roomid].Client, client)
+
 }
 
 func (ws *Wserver) BroadcastMessage(msg *Message) {

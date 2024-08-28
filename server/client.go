@@ -30,6 +30,10 @@ func newClient(name string, conn *websocket.Conn, wserver *Wserver) *Client {
 }
 
 func (client *Client) ReadInput() {
+	defer func() {
+		client.ws.Unregister <- client
+		client.conn.Close()
+	}()
 	for {
 		_, msg, err := client.conn.ReadMessage()
 		if err != nil {
@@ -47,6 +51,9 @@ func (client *Client) ReadInput() {
 }
 
 func (client *Client) WriteInput() {
+	defer func() {
+		client.conn.Close()
+	}()
 	for {
 		Msg := <-client.Message
 		w, err := client.conn.NextWriter(websocket.TextMessage)
